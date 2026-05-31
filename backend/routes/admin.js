@@ -166,12 +166,11 @@ router.put('/users/:id/reset-password', [
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 // ══════════════════════════════════════════════════════════════
-//  GAME MANAGEMENT
+//  GAME MANAGEMENT (Admin Routes)
 // ══════════════════════════════════════════════════════════════
 
-// GET all games
+// GET all games for admin (Includes hidden and deleted if needed, but keeping active ones)
 router.get('/games', async (req, res) => {
   try {
     const [games] = await db.query('SELECT * FROM games WHERE status != "deleted" ORDER BY created_at DESC');
@@ -181,29 +180,34 @@ router.get('/games', async (req, res) => {
   }
 });
 
-// Add new game
+// ADD NEW GAME
 router.post('/games', [
   body('name').notEmpty(),
   body('open_time').notEmpty(),
-  body('close_time').notEmpty(),
-  body('result_time').notEmpty()
+  body('close_time').notEmpty()
 ], async (req, res) => {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+  if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array(), message: "Invalid Input" });
 
-  const { name, open_time, close_time, result_time, min_bid, max_bid } = req.body;
+  const { name, open_time, close_time, category } = req.body;
   try {
+    // result_time auto-set to close_time. category defaults to 'regular'. min_bid=10, max_bid=10000.
     const [result] = await db.query(
-      'INSERT INTO games (name, open_time, close_time, result_time, min_bid, max_bid, status) VALUES (?, ?, ?, ?, ?, ?, "closed")',
-      [name, open_time, close_time, result_time, min_bid || 10, max_bid || 10000]
+      'INSERT INTO games (name, open_time, close_time, result_time, game_category, min_bid, max_bid, status, is_hidden) VALUES (?, ?, ?, ?, ?, ?, ?, "closed", 0)',
+      [name, open_time, close_time, close_time, category || 'regular', 10, 10000]
     );
-    res.status(201).json({ success: true, message: 'Game created', game_id: result.insertId });
+    res.status(201).json({ 
+      success: true, 
+      message: 'Game created', 
+      game: { id: result.insertId, name, open_time, close_time, status: 'closed', is_hidden: 0 } 
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error: ' + err.message });
   }
 });
 
-// Update game
+// UPDATE GAME
 router.put('/games/:id', async (req, res) => {
   const { name, open_time, close_time, result_time, min_bid, max_bid } = req.body;
   try {
@@ -217,7 +221,7 @@ router.put('/games/:id', async (req, res) => {
   }
 });
 
-// Open / Close game
+// OPEN / CLOSE GAME
 router.put('/games/:id/status', [
   body('status').isIn(['open', 'closed'])
 ], async (req, res) => {
@@ -229,8 +233,29 @@ router.put('/games/:id/status', [
   }
 });
 
+// HIDE / SHOW GAME
+router.put('/games/:id/hide', async (req, res) => {
+  const { hide } = req.body;
+  try {
+    await db.query('UPDATE games SET is_hidden = ? WHERE id = ?', [hide ? 1 : 0, req.params.id]);
+    res.json({ success: true, message: `Game ${hide ? 'hidden' : 'visible'}` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// DELETE GAME (HARD DELETE FROM ADMIN)
+router.delete('/games/:id', async (req, res) => {
+  try {
+    await db.query('DELETE FROM games WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: 'Game deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // ─── DECLARE RESULT ───────────────────────────────────────────────────────────
-// This is the most critical route — declares result and pays winners
+// ... (Yahan se neeche wala Declare Result aur Deposits wala code waisa hi rahega jaisa pehle tha)// This is the most critical route — declares result and pays winners
 router.put('/games/:id/result', [
   body('open_result').notEmpty().withMessage('Open result required'),
   body('close_result').notEmpty().withMessage('Close result required')

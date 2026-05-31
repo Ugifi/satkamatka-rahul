@@ -327,6 +327,53 @@ body{
   text-transform:uppercase;
 }
 
+
+/* ── LIGHTNING GLOBAL ANIMATION ── */
+@keyframes spinLight {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.lightning-spin {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(from 0deg, transparent 60%, rgba(255, 215, 0, 0.4) 80%, #ffd700 95%, #fff 100%);
+  animation: spinLight 4s linear infinite;
+  z-index: 1;
+}
+
+/* ── PREVIOUS CSS RESTORED & ENHANCED ── */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Teko:wght@400;500;600;700&display=swap');
+
+:root {
+  --gold: #FFD700;
+  --gold2: #FFA500;
+  --gold3: #FF8C00;
+  --green: #00cc44;
+  --red: #ff2244;
+  --bg: #040a04;
+  --border: rgba(255,215,0,0.18);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent }
+
+body {
+  font-family:'Rajdhani',sans-serif;
+  min-height:100vh;
+  background:radial-gradient(ellipse 140% 80% at 50% 0%,#0d2e1a 0%,#050f05 55%,#000 100%);
+  color:#fff;
+}
+
+/* ... (Remaining CSS provided in your prompt stays here) ... */
+
+/* Custom enhancement for the lightning wrapper content */
+.lightning-content {
+  box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.1);
+}
+
 /* ══════════════════════════════════════════
    BET FORM
 ══════════════════════════════════════════ */
@@ -368,11 +415,11 @@ body{
 }
 .fi{
   width:100%;
-  background:rgba(255,255,255,0.06);
+  background:rgba(28, 4, 4, 0.06);
   border:1.5px solid rgba(255,215,0,0.25);
   border-radius:10px;
   padding:11px 14px;
-  color:#fff;
+  color:#1dfe1a;
   font-size:16px;
   outline:none;
   font-family:'Rajdhani',sans-serif;
@@ -961,4 +1008,22 @@ body{
   .admin-sidebar{display:none}
   .admin-content{margin-left:0;padding:12px}
   .stat-cards{grid-template-columns:1fr 1fr}
+}
+/* ── AUTOFILL BACKGROUND FIX ── */
+/* Chrome, Safari, aur Edge ke liye */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    /* Yeh background ko transparent rakhega */
+    -webkit-box-shadow: 0 0 0px 1000px #0d2a1a inset !important;
+    /* Yeh text ka colour wapas green/white kar dega */
+    -webkit-text-fill-color: #1dfe1a !important;
+    /* Smooth transition taaki white flash na ho */
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Firefox ke liye */
+input:filter(autofill) {
+    background-color: #0d2a1a !important;
 }

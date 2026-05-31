@@ -1,5 +1,4 @@
-  const API_URL = 'https://satta-matka-qoyn.onrender.com/api'; // Production mein change karo
-
+const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   const getHeaders = () => ({
     'Content-Type': 'application/json',
     ...(localStorage.getItem('mk_token') ? { Authorization: `Bearer ${localStorage.getItem('mk_token')}` } : {})

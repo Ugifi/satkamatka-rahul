@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const API = 'https://satta-matka-qoyn.onrender.com';
-// ── FIREFOX/CHROME CACHE FIX APPLIED ──
+// Purana code: const API = 'http://localhost:5000';
+
+// Naya code:
+const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';// ── FIREFOX/CHROME CACHE FIX APPLIED ──
 // ── CORS SAFE CACHE FIX ──
 function apiCall(path, method = 'GET', body = null) {
   const token = localStorage.getItem('mk_token');
@@ -358,19 +360,29 @@ export default function AdminPanel({ onLogout }) {
       showToast(blocked ? 'User unblocked ✅' : 'User blocked 🚫');
     }
   };
+
   const addCoins = async (id) => {
     const a = prompt('Kitne coins ADD karne hain?');
     if (!a) return;
     const res = await apiCall(`/api/admin/users/${id}/coins`, 'PUT', { amount: Number(a), action: 'add', wallet: 'wallet' });
-    if (res.success) showToast('Coins added ✅');
-    else showToast('Error: ' + res.message);
+    if (res.success) {
+      showToast('Coins added ✅');
+      fetchPageData('users', false); // ✅ UI Update fix
+    } else {
+      showToast('Error: ' + res.message);
+    }
   };
+
   const deductCoins = async (id) => {
     const a = prompt('Kitne coins DEDUCT karne hain?');
     if (!a) return;
     const res = await apiCall(`/api/admin/users/${id}/coins`, 'PUT', { amount: Number(a), action: 'deduct', wallet: 'wallet' });
-    if (res.success) showToast('Coins deducted ✅');
-    else showToast('Error: ' + res.message);
+    if (res.success) {
+      showToast('Coins deducted ✅');
+      fetchPageData('users', false); // ✅ UI Update fix
+    } else {
+      showToast('Error: ' + res.message);
+    }
   };
 
   // ── GAME ACTIONS ──
@@ -645,48 +657,94 @@ export default function AdminPanel({ onLogout }) {
           </div>
         )}
 
-        {/* GAMES */}
-        {!loading && page === 'games' && <>
-          <div className="admin-card">
-            <div className="admin-card-title">➕ Add New Game</div>
-            <input className="admin-input" placeholder="Game Name (e.g. Kalyan)"
-              value={newGame.name} onChange={e => setNewGame({ ...newGame, name: e.target.value })} />
-            <input className="admin-input" placeholder="Open Time (e.g. 10:00 AM)"
-              value={newGame.open_time} onChange={e => setNewGame({ ...newGame, open_time: e.target.value })} />
-            <input className="admin-input" placeholder="Close Time (e.g. 12:00 PM)"
-              value={newGame.close_time} onChange={e => setNewGame({ ...newGame, close_time: e.target.value })} />
-            <button className="admin-btn" onClick={addGame}>+ Add Game</button>
-          </div>
-          <div className="admin-card">
-            <div className="admin-card-title">🎮 All Games</div>
-            {games.map(g => (
-              <div key={g.id} style={{
-                background: '#180404', borderRadius: 10, padding: '12px 14px',
-                marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14,color: '#f0a500' }}>{g.name}</div>
-                  <div style={{ fontSize: 11, color: '#f0a500', marginTop: 2 }}>{g.open_time} – {g.close_time}</div>
-                  <div style={{ fontSize: 12, color: '#d21010', marginTop: 2 }}>Result: <strong>{g.result || '—'}</strong></div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                  <span style={{
-                    padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                    background: g.status === 'open' ? '#dcfce7' : '#f0f0f0',
-                    color: g.status === 'open' ? '#16a34a' : '#666'
-                  }}>{g.status}</span>
-                  <button onClick={() => toggleGameStatus(g.id, g.status)} style={{
-                    padding: '6px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
-                    fontWeight: 700, fontSize: 12,
-                    background: g.status === 'open' ? '#fee2e2' : '#dcfce7',
-                    color: g.status === 'open' ? '#dc2626' : '#16a34a'
-                  }}>{g.status === 'open' ? 'Close' : 'Open'}</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>}
+       {!loading && page === 'games' && <>
+  <div className="admin-card">
+    <div className="admin-card-title">➕ Add New Game</div>
+    <input className="admin-input" placeholder="Game Name (e.g. Kalyan)"
+      value={newGame.name} onChange={e => setNewGame({ ...newGame, name: e.target.value })} />
+    <input className="admin-input" placeholder="Open Time (e.g. 10:00 AM)"
+      value={newGame.open_time} onChange={e => setNewGame({ ...newGame, open_time: e.target.value })} />
+    <input className="admin-input" placeholder="Close Time (e.g. 12:00 PM)"
+      value={newGame.close_time} onChange={e => setNewGame({ ...newGame, close_time: e.target.value })} />
+    
+    <button className="admin-btn" onClick={async () => {
+        if (!newGame.name || !newGame.open_time || !newGame.close_time) {
+            showToast('Saari details bhariye!');
+            return;
+        }
+        const res = await apiCall('/api/admin/games', 'POST', { ...newGame, category: 'regular' });
+        if (res.success) {
+            setGames(gs => [...gs, res.game || res.data]);
+            setNewGame({ name: '', open_time: '', close_time: '' });
+            showToast('Game Add Ho Gaya! ✅');
+            fetchPageData('games'); 
+        } else {
+            showToast('Error: ' + res.message);
+        }
+    }}>+ Add Game</button>
+  </div>
 
+  <div className="admin-card">
+    <div className="admin-card-title">🎮 All Games</div>
+    {games.length === 0 ? <div style={{color:'#888', textAlign:'center'}}>No games found.</div> : 
+      games.map(g => (
+      <div key={g.id} style={{
+        background: '#180404', borderRadius: 10, padding: '12px 14px',
+        marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
+        opacity: g.is_hidden ? 0.6 : 1 // 🔥 Hidden game thoda dhundhla dikhega
+      }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#f0a500' }}>
+            {g.name} {g.is_hidden && <span style={{fontSize: 10, color: '#ff2244'}}>(HIDDEN)</span>}
+          </div>
+          <div style={{ fontSize: 11, color: '#f0a500', marginTop: 2 }}>{g.open_time} – {g.close_time}</div>
+          <div style={{ fontSize: 12, color: '#d21010', marginTop: 2 }}>Result: <strong>{g.result || '—'}</strong></div>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <div style={{ display:'flex', gap: 6 }}>
+            
+            {/* 🔥 HIDE / UNHIDE BUTTON 🔥 */}
+            <button 
+              onClick={async () => {
+                const res = await apiCall(`/api/admin/games/${g.id}/hide`, 'PUT', { hide: !g.is_hidden });
+                if(res.success) {
+                  showToast(g.is_hidden ? 'Game Show Kar Diya! 👁️' : 'Game Hide Kar Diya! 🙈');
+                  setGames(gs => gs.map(item => item.id === g.id ? { ...item, is_hidden: !g.is_hidden } : item));
+                }
+              }}
+              style={{ padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: g.is_hidden ? '#22c55e' : '#f0a500', color: '#000', fontSize: 11, fontWeight: 'bold' }}
+            >
+              {g.is_hidden ? '👁️ Show' : '🙈 Hide'}
+            </button>
+
+            {/* DELETE BUTTON */}
+            <button 
+              onClick={async () => {
+                if(!window.confirm(`Kya aap "${g.name}" ko delete karna chahte hain?`)) return;
+                const res = await apiCall(`/api/admin/games/${g.id}`, 'DELETE');
+                if(res.success) {
+                  showToast('Game Delete Ho Gaya! 🗑️');
+                  setGames(prev => prev.filter(item => item.id !== g.id));
+                }
+              }}
+              style={{ padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: '#dc2626', color: '#fff', fontSize: 11, fontWeight: 'bold' }}
+            >🗑️ Delete</button>
+          </div>
+          
+          <button onClick={() => toggleGameStatus(g.id, g.status)} style={{
+              padding: '4px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
+              fontWeight: 700, fontSize: 11,
+              background: g.status === 'open' ? '#dcfce7' : '#fee2e2',
+              color: g.status === 'open' ? '#16a34a' : '#dc2626'
+            }}>
+              {g.status?.toUpperCase()}
+          </button>
+        </div>
+      </div>
+    ))}
+  </div>
+</>}
         {/* DEPOSITS */}
         {!loading && page === 'deposits' && (
           <div>

@@ -13,8 +13,6 @@ export default function BetForm({ game, gameType, wallet, onSubmit }) {
   const [oddEven, setOddEven] = useState('');
   const [openClose, setOpenClose] = useState('open');
   const [cycleDigit, setCycleDigit] = useState(null);
-
-  // ✅ FIX: submitting state — button disable ho jaata hai, double click se multiple bids nahi jaati
   const [submitting, setSubmitting] = useState(false);
 
   const chips = [10, 50, 100, 200, 500];
@@ -60,28 +58,18 @@ export default function BetForm({ game, gameType, wallet, onSubmit }) {
   const removeBet = i => setBets(b => b.filter((_, idx) => idx !== i));
   const totalAmt = bets.reduce((a, b) => a + b.amt, 0);
 
-// ✅ FIX: handleSubmit async + submitting flag (with Session Fix)
   const handleSubmit = async () => {
-    if (submitting) return; // double click block
+    if (submitting) return;
     setSubmitting(true);
-
     try {
-      // 👇 NAYA ADD KIYA: Session yahan se uthega
       const commonData = { session: openClose };
-
       if (isBulkType) {
         if (!bets.length) { setSubmitting(false); return; }
         await onSubmit({ numbers: bets, totalAmt, ...commonData });
       } else if (id === 'odd_even') {
         if (!oddEven || !amt || Number(amt) < 10) { setSubmitting(false); return; }
         await onSubmit({ number: oddEven, amount: Number(amt), ...commonData });
-      } else if (id === 'half_sangam_a') {
-        if (!num || !num2 || !amt || Number(amt) < 10) { setSubmitting(false); return; }
-        await onSubmit({ number: `${num}-${num2}`, amount: Number(amt), ...commonData });
-      } else if (id === 'half_sangam_b') {
-        if (!num || !num2 || !amt || Number(amt) < 10) { setSubmitting(false); return; }
-        await onSubmit({ number: `${num}-${num2}`, amount: Number(amt), ...commonData });
-      } else if (id === 'full_sangam') {
+      } else if (id === 'half_sangam_a' || id === 'half_sangam_b' || id === 'full_sangam') {
         if (!num || !num2 || !amt || Number(amt) < 10) { setSubmitting(false); return; }
         await onSubmit({ number: `${num}-${num2}`, amount: Number(amt), ...commonData });
       } else if (id === 'two_digit_pana') {
@@ -97,447 +85,257 @@ export default function BetForm({ game, gameType, wallet, onSubmit }) {
   };
 
   const AmtInput = ({ label = 'Bid Amount (Min ₹10)' }) => (
-    <div className="fg">
-      <label className="fl">{label}</label>
-      <input className="fi" type="number" placeholder="₹0" value={amt} onChange={e => setAmt(e.target.value)}/>
-      <div className="chips-row">
+    <div className="bf-fg">
+      <label className="bf-label">{label}</label>
+      <input className="bf-input" type="number" placeholder="₹0" value={amt} onChange={e => setAmt(e.target.value)}/>
+      <div className="bf-chips-row">
         {chips.map(c => (
-          <div key={c} className={`chip${amt === String(c) ? ' active' : ''}`} onClick={() => setAmt(String(c))}>₹{c}</div>
+          <div key={c} className={`bf-chip${amt === String(c) ? ' active' : ''}`} onClick={() => setAmt(String(c))}>₹{c}</div>
         ))}
       </div>
     </div>
   );
 
   const WinInfo = () => (
-    <div className="infobox">
-      You bet: <strong>₹{Number(amt||0).toLocaleString()}</strong> &nbsp;|&nbsp;
-      Potential win: <strong>₹{(Number(amt||0)*parseInt(gameType.win)).toLocaleString()}</strong>
+    <div className="bf-infobox">
+      Bid: <strong>₹{Number(amt||0).toLocaleString()}</strong> &nbsp;→&nbsp;
+      Win: <strong>₹{(Number(amt||0)*parseInt(gameType.win)).toLocaleString()}</strong>
     </div>
   );
 
-  // ✅ FIX: Button disabled + loading text jab submit ho raha ho
   const PlaceBtn = () => (
-    <button
-      className="btn-place"
-      onClick={handleSubmit}
-      disabled={submitting}
-      style={{ opacity: submitting ? 0.6 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}
-    >
+    <button className="bf-place-btn" onClick={handleSubmit} disabled={submitting}>
       {submitting ? '⏳ Placing...' : `🎯 Place Bid — ₹${Number(amt||0).toLocaleString()}`}
     </button>
   );
 
-  const BulkTable = () => (bets.length > 0 ? <>
-    <table className="bet-table">
-      <thead><tr><th>#</th><th>Number</th><th>Amount</th><th></th></tr></thead>
-      <tbody>{bets.map((b, i) => (
-        <tr key={i}>
-          <td>{i+1}</td>
-          <td style={{fontWeight:700}}>{b.num}</td>
-          <td>₹{b.amt.toLocaleString()}</td>
-          <td><button className="del-btn" onClick={() => removeBet(i)}>✕</button></td>
-        </tr>
-      ))}</tbody>
-    </table>
-    <div className="total-row">
-      <span>Total Bets: {bets.length}</span>
-      <strong>₹{totalAmt.toLocaleString()}</strong>
-    </div>
-  </> : null);
+  const BulkTable = () => (bets.length > 0 ? (
+    <>
+      <div className="bf-bulk-table-wrap">
+        <table className="bf-table">
+          <thead><tr><th>#</th><th>Number</th><th>Amount</th><th></th></tr></thead>
+          <tbody>{bets.map((b, i) => (
+            <tr key={i}>
+              <td>{i+1}</td>
+              <td><strong>{b.num}</strong></td>
+              <td>₹{b.amt.toLocaleString()}</td>
+              <td><button className="bf-del" onClick={() => removeBet(i)}>✕</button></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+      <div className="bf-total-row">
+        <span>Total Bets: {bets.length}</span>
+        <strong>₹{totalAmt.toLocaleString()}</strong>
+      </div>
+    </>
+  ) : null);
 
   const AddBtn = ({ label = '+ Add to List' }) => (
-    <button onClick={addToBulk} style={{width:'100%',background:'#e8f5ee',color:'#0d3526',border:'2px dashed #0d3526',borderRadius:8,padding:10,fontWeight:700,fontFamily:'Rajdhani,sans-serif',fontSize:14,cursor:'pointer',marginBottom:14}}>
-      {label}
-    </button>
+    <button onClick={addToBulk} className="bf-add-btn">{label}</button>
   );
 
-  // ✅ FIX: PlaceAllBtn bhi disabled jab submitting
   const PlaceAllBtn = () => (
-    <button
-      className="btn-place"
-      onClick={handleSubmit}
-      disabled={submitting}
-      style={{ marginTop:12, opacity: submitting ? 0.6 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}
-    >
+    <button className="bf-place-btn" onClick={handleSubmit} disabled={submitting} style={{marginTop:12}}>
       {submitting ? '⏳ Placing...' : `🎯 Place All Bids — ₹${totalAmt.toLocaleString()}`}
     </button>
   );
 
-  return (
-    <div className="bet-page">
-      <div className="bet-game-banner">
-        <div className="bgb-icon">{game.icon}</div>
-        <div>
-          <div className="bgb-name">{game.name}</div>
-          <div className="bgb-type">{gameType.label} &nbsp;|&nbsp; Win: {gameType.win} &nbsp;|&nbsp; Wallet: ₹{wallet.toLocaleString()}</div>
-        </div>
-      </div>
-
-      <div className="bet-form-card">
-        {/* ── Session Selection (Open/Close) ── */}
-{id !== 'jodi' && id !== 'jodi_bulk' && id !== 'jodi_digit' && (
-  <div className="fg">
-    <label className="fl">Select Session</label>
-    <div style={{display:'flex', gap:10, marginBottom:15}}>
-      {['open', 'close'].map(s => (
-        <div 
-          key={s} 
-          className={`chip${openClose === s ? ' active' : ''}`}
-          style={{flex:1, textAlign:'center', padding:'10px 0', cursor:'pointer'}}
-          onClick={() => setOpenClose(s)}
-        >
-          {s.toUpperCase()}
-        </div>
+  const NumGrid = ({ selected, onSelect }) => (
+    <div className="bf-num-grid">
+      {DIGITS.map(d => (
+        <div key={d} className={`bf-nchip${selected === String(d) ? ' active' : ''}`} onClick={() => onSelect(String(d))}>{d}</div>
       ))}
     </div>
-  </div>
-)}
+  );
+
+  const JodiGrid = ({ selected, onSelect }) => (
+    <div className="bf-jodi-scroll">
+      <div className="bf-jodi-grid">
+        {JODIS.map(j => (
+          <div key={j} className={`bf-jchip${selected === j ? ' active' : ''}`} onClick={() => onSelect(j)}>{j}</div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const PanaGrid = ({ panas, selected, onSelect }) => (
+    <div className="bf-pana-grid">
+      {panas.map(p => (
+        <div key={p} className={`bf-pchip${selected === p ? ' active' : ''}`} onClick={() => onSelect(p)}>{p}</div>
+      ))}
+    </div>
+  );
+
+  const SessionToggle = () => (
+    <div className="bf-fg">
+      <label className="bf-label">Select Session</label>
+      <div className="bf-session-row">
+        {['open','close'].map(s => (
+          <div key={s} className={`bf-session-btn${openClose === s ? ' active' : ''}`} onClick={() => setOpenClose(s)}>
+            {s === 'open' ? '🌅 OPEN' : '🌙 CLOSE'}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="bf-wrap">
+      {/* Banner */}
+      <div className="bf-banner">
+        <div className="bf-banner-icon">{game.icon}</div>
+        <div>
+          <div className="bf-banner-name">{game.name}</div>
+          <div className="bf-banner-sub">{gameType.label} &nbsp;|&nbsp; Win: {gameType.win}x &nbsp;|&nbsp; 💰 ₹{wallet.toLocaleString()}</div>
+        </div>
+      </div>
+
+      <div className="bf-card">
         <div className="bf-title">🎯 {gameType.label}</div>
-        <div className="infobox">{gameType.desc} — Win multiplier: <strong>{gameType.win}</strong></div>
+        <div className="bf-desc-box">{gameType.desc} &nbsp;— Multiplier: <strong>{gameType.win}x</strong></div>
+
+        {/* Session toggle (not for jodi types) */}
+        {id !== 'jodi' && id !== 'jodi_bulk' && id !== 'jodi_digit' && <SessionToggle />}
 
         {/* ── 1. SINGLE DIGIT ── */}
-        {id === 'single_digit' && <>
-          <div className="fg"><label className="fl">Pick a Digit (0–9)</label>
-            <div className="num-grid">
-              {DIGITS.map(d => (
-                <div key={d} className={`nchip${activeN === d ? ' active' : ''}`}
-                  onClick={() => { setActiveN(d); setNum(String(d)); }}>{d}
-                </div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'single_digit' && <><div className="bf-fg"><label className="bf-label">Pick a Digit (0–9)</label><NumGrid selected={num} onSelect={v => { setNum(v); setActiveN(Number(v)); }} /></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 2. SINGLE DIGIT BULK ── */}
-        {id === 'single_digit_bulk' && <>
-          <div className="fg"><label className="fl">Pick Digits</label>
-            <div className="num-grid">
-              {DIGITS.map(d => (
-                <div key={d} className={`nchip${num === String(d) ? ' active' : ''}`}
-                  onClick={() => setNum(String(d))}>{d}
-                </div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <AddBtn label="+ Add Digit"/>
-          <BulkTable/>
-          {bets.length > 0 && <PlaceAllBtn/>}
-        </>}
+        {id === 'single_digit_bulk' && <><div className="bf-fg"><label className="bf-label">Pick Digits</label><NumGrid selected={num} onSelect={setNum} /></div><AmtInput/><AddBtn label="+ Add Digit"/><BulkTable/>{bets.length > 0 && <PlaceAllBtn/>}</>}
 
         {/* ── 3. JODI DIGIT ── */}
-        {id === 'jodi_digit' && <>
-          <div className="fg"><label className="fl">Pick Jodi (00–99)</label>
-            <div className="jodi-scroll">
-              <div className="jodi-grid">
-                {JODIS.map(j => (
-                  <div key={j} className={`jchip${num === j ? ' active' : ''}`} onClick={() => setNum(j)}>{j}</div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'jodi_digit' && <><div className="bf-fg"><label className="bf-label">Pick Jodi (00–99)</label><JodiGrid selected={num} onSelect={setNum} /></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 4. JODI BULK ── */}
-        {id === 'jodi_bulk' && <>
-          <div className="fg"><label className="fl">Pick Jodi</label>
-            <div className="jodi-scroll">
-              <div className="jodi-grid">
-                {JODIS.map(j => (
-                  <div key={j} className={`jchip${num === j ? ' active' : ''}`} onClick={() => setNum(j)}>{j}</div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <AmtInput/>
-          <AddBtn label="+ Add Jodi"/>
-          <BulkTable/>
-          {bets.length > 0 && <PlaceAllBtn/>}
-        </>}
+        {id === 'jodi_bulk' && <><div className="bf-fg"><label className="bf-label">Pick Jodi</label><JodiGrid selected={num} onSelect={setNum} /></div><AmtInput/><AddBtn label="+ Add Jodi"/><BulkTable/>{bets.length > 0 && <PlaceAllBtn/>}</>}
 
         {/* ── 5. SINGLE PANA ── */}
-        {id === 'single_pana' && <>
-          <div className="fg"><label className="fl">Pick Single Pana</label>
-            <div className="pana-grid">
-              {SINGLE_PANAS.map(p => (
-                <div key={p} className={`pchip${num === p ? ' active' : ''}`} onClick={() => setNum(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'single_pana' && <><div className="bf-fg"><label className="bf-label">Pick Single Pana</label><PanaGrid panas={SINGLE_PANAS} selected={num} onSelect={setNum} /></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 6. SINGLE PANA BULK ── */}
-        {id === 'single_pana_bulk' && <>
-          <div className="fg"><label className="fl">Pick Single Pana</label>
-            <div className="pana-grid">
-              {SINGLE_PANAS.map(p => (
-                <div key={p} className={`pchip${num === p ? ' active' : ''}`} onClick={() => setNum(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <AddBtn/>
-          <BulkTable/>
-          {bets.length > 0 && <PlaceAllBtn/>}
-        </>}
+        {id === 'single_pana_bulk' && <><div className="bf-fg"><label className="bf-label">Pick Single Pana</label><PanaGrid panas={SINGLE_PANAS} selected={num} onSelect={setNum} /></div><AmtInput/><AddBtn/><BulkTable/>{bets.length > 0 && <PlaceAllBtn/>}</>}
 
         {/* ── 7. DOUBLE PANA ── */}
-        {id === 'double_pana' && <>
-          <div className="fg"><label className="fl">Pick Double Pana</label>
-            <div className="pana-grid">
-              {DOUBLE_PANAS.map(p => (
-                <div key={p} className={`pchip${num === p ? ' active' : ''}`} onClick={() => setNum(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'double_pana' && <><div className="bf-fg"><label className="bf-label">Pick Double Pana</label><PanaGrid panas={DOUBLE_PANAS} selected={num} onSelect={setNum} /></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 8. DOUBLE PANA BULK ── */}
-        {id === 'double_pana_bulk' && <>
-          <div className="fg"><label className="fl">Pick Double Pana</label>
-            <div className="pana-grid">
-              {DOUBLE_PANAS.map(p => (
-                <div key={p} className={`pchip${num === p ? ' active' : ''}`} onClick={() => setNum(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <AddBtn/>
-          <BulkTable/>
-          {bets.length > 0 && <PlaceAllBtn/>}
-        </>}
+        {id === 'double_pana_bulk' && <><div className="bf-fg"><label className="bf-label">Pick Double Pana</label><PanaGrid panas={DOUBLE_PANAS} selected={num} onSelect={setNum} /></div><AmtInput/><AddBtn/><BulkTable/>{bets.length > 0 && <PlaceAllBtn/>}</>}
 
         {/* ── 9. TRIPLE PANA ── */}
-        {id === 'triple_pana' && <>
-          <div className="fg"><label className="fl">Pick Triple Pana</label>
-            <div className="pana-grid">
-              {TRIPLE_PANAS.map(p => (
-                <div key={p} className={`pchip${num === p ? ' active' : ''}`} onClick={() => setNum(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'triple_pana' && <><div className="bf-fg"><label className="bf-label">Pick Triple Pana</label><PanaGrid panas={TRIPLE_PANAS} selected={num} onSelect={setNum} /></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 10. HALF SANGAM A ── */}
-        {id === 'half_sangam_a' && <>
-          <div className="fg"><label className="fl">Open Digit (0–9)</label>
-            <div className="num-grid">
-              {DIGITS.map(d => (
-                <div key={d} className={`nchip${num === String(d) ? ' active' : ''}`} onClick={() => setNum(String(d))}>{d}</div>
-              ))}
-            </div>
-          </div>
-          <div className="fg"><label className="fl">Close Pana</label>
-            <div className="pana-grid">
-              {SINGLE_PANAS.map(p => (
-                <div key={p} className={`pchip${num2 === p ? ' active' : ''}`} onClick={() => setNum2(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'half_sangam_a' && <><div className="bf-fg"><label className="bf-label">Open Digit (0–9)</label><NumGrid selected={num} onSelect={setNum} /></div><div className="bf-fg"><label className="bf-label">Close Pana</label><PanaGrid panas={SINGLE_PANAS} selected={num2} onSelect={setNum2} /></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 11. HALF SANGAM B ── */}
-        {id === 'half_sangam_b' && <>
-          <div className="fg"><label className="fl">Open Pana</label>
-            <div className="pana-grid">
-              {SINGLE_PANAS.map(p => (
-                <div key={p} className={`pchip${num === p ? ' active' : ''}`} onClick={() => setNum(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <div className="fg"><label className="fl">Close Digit (0–9)</label>
-            <div className="num-grid">
-              {DIGITS.map(d => (
-                <div key={d} className={`nchip${num2 === String(d) ? ' active' : ''}`} onClick={() => setNum2(String(d))}>{d}</div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'half_sangam_b' && <><div className="bf-fg"><label className="bf-label">Open Pana</label><PanaGrid panas={SINGLE_PANAS} selected={num} onSelect={setNum} /></div><div className="bf-fg"><label className="bf-label">Close Digit (0–9)</label><NumGrid selected={num2} onSelect={setNum2} /></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 12. FULL SANGAM ── */}
-        {id === 'full_sangam' && <>
-          <div className="fg"><label className="fl">Open Pana</label>
-            <div className="pana-grid">
-              {SINGLE_PANAS.map(p => (
-                <div key={p} className={`pchip${num === p ? ' active' : ''}`} onClick={() => setNum(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <div className="fg"><label className="fl">Close Pana</label>
-            <div className="pana-grid">
-              {SINGLE_PANAS.map(p => (
-                <div key={p} className={`pchip${num2 === p ? ' active' : ''}`} onClick={() => setNum2(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'full_sangam' && <><div className="bf-fg"><label className="bf-label">Open Pana</label><PanaGrid panas={SINGLE_PANAS} selected={num} onSelect={setNum} /></div><div className="bf-fg"><label className="bf-label">Close Pana</label><PanaGrid panas={SINGLE_PANAS} selected={num2} onSelect={setNum2} /></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 13. ODD / EVEN ── */}
-        {id === 'odd_even' && <>
-          <div className="fg"><label className="fl">Bet On</label>
-            <div style={{display:'flex',gap:10}}>
-              {['ODD','EVEN'].map(oe => (
-                <div key={oe} className={`chip${oddEven === oe ? ' active' : ''}`}
-                  style={{flex:1,textAlign:'center',padding:'12px 0',fontSize:14}}
-                  onClick={() => setOddEven(oe)}>{oe}
-                </div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'odd_even' && <><div className="bf-fg"><label className="bf-label">Bet On</label><div className="bf-session-row">{['ODD','EVEN'].map(oe => (<div key={oe} className={`bf-session-btn${oddEven === oe ? ' active' : ''}`} onClick={() => setOddEven(oe)}>{oe}</div>))}</div></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 14/15. DP/SP MOTOR ── */}
-        {(id === 'dp_motor' || id === 'sp_motor') && <>
-          <div className="fg"><label className="fl">Pick Pana</label>
-            <div className="pana-grid">
-              {(id === 'dp_motor' ? DOUBLE_PANAS : SINGLE_PANAS).map(p => (
-                <div key={p} className={`pchip${num === p ? ' active' : ''}`} onClick={() => setNum(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <AddBtn/>
-          <BulkTable/>
-          {bets.length > 0 && <PlaceAllBtn/>}
-        </>}
+        {(id === 'dp_motor' || id === 'sp_motor') && <><div className="bf-fg"><label className="bf-label">Pick Pana</label><PanaGrid panas={id === 'dp_motor' ? DOUBLE_PANAS : SINGLE_PANAS} selected={num} onSelect={setNum} /></div><AmtInput/><AddBtn/><BulkTable/>{bets.length > 0 && <PlaceAllBtn/>}</>}
 
         {/* ── 16. RED JODI ── */}
-        {id === 'red_jodi' && <>
-          <div className="fg"><label className="fl">Pick Jodi</label>
-            <div className="jodi-scroll">
-              <div className="jodi-grid">
-                {JODIS.map(j => (
-                  <div key={j} className={`jchip${num === j ? ' active' : ''}`} onClick={() => setNum(j)}>{j}</div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'red_jodi' && <><div className="bf-fg"><label className="bf-label">Pick Jodi</label><JodiGrid selected={num} onSelect={setNum} /></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 17. CYCLE JODI ── */}
-        {id === 'cycle_jodi' && <>
-          <div className="fg"><label className="fl">Pick a Digit to Cycle</label>
-            <div className="num-grid">
-              {DIGITS.map(d => (
-                <div key={d} className={`nchip${cycleDigit === d ? ' active' : ''}`} onClick={() => setCycleDigit(d)}>{d}</div>
-              ))}
-            </div>
-          </div>
-          {cycleDigit !== null && (
-            <div className="infobox">Will add <strong>{cycleJodis.length} jodis</strong>: {cycleJodis.slice(0,6).join(', ')}...</div>
-          )}
-          <AmtInput label="Amount per jodi"/>
-          <AddBtn label="+ Add All Cycle Jodis"/>
-          <BulkTable/>
-          {bets.length > 0 && <PlaceAllBtn/>}
-        </>}
+        {id === 'cycle_jodi' && <><div className="bf-fg"><label className="bf-label">Pick a Digit to Cycle</label><NumGrid selected={cycleDigit !== null ? String(cycleDigit) : ''} onSelect={v => setCycleDigit(Number(v))} /></div>{cycleDigit !== null && <div className="bf-desc-box">Will add <strong>{cycleJodis.length} jodis</strong>: {cycleJodis.slice(0,6).join(', ')}...</div>}<AmtInput label="Amount per jodi"/><AddBtn label="+ Add All Cycle Jodis"/><BulkTable/>{bets.length > 0 && <PlaceAllBtn/>}</>}
 
         {/* ── 18. SP DP TP ── */}
-        {id === 'sp_dp_tp' && <>
-          <div className="fg"><label className="fl">Enter Pana Number</label>
-            <input className="fi" type="text" placeholder="e.g. 128" maxLength={3} value={num} onChange={e => setNum(e.target.value)}/>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'sp_dp_tp' && <><div className="bf-fg"><label className="bf-label">Enter Pana Number</label><input className="bf-input" type="text" placeholder="e.g. 128" maxLength={3} value={num} onChange={e => setNum(e.target.value)}/></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 19. TWO DIGIT PANA ── */}
-        {id === 'two_digit_pana' && <>
-          <div className="fg"><label className="fl">Pick Jodi (2-digit)</label>
-            <div className="jodi-scroll">
-              <div className="jodi-grid">
-                {JODIS.map(j => (
-                  <div key={j} className={`jchip${num === j ? ' active' : ''}`} onClick={() => setNum(j)}>{j}</div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="fg"><label className="fl">Pick Pana</label>
-            <div className="pana-grid">
-              {SINGLE_PANAS.map(p => (
-                <div key={p} className={`pchip${num2 === p ? ' active' : ''}`} onClick={() => setNum2(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <WinInfo/>
-          <PlaceBtn/>
-        </>}
+        {id === 'two_digit_pana' && <><div className="bf-fg"><label className="bf-label">Pick Jodi (2-digit)</label><JodiGrid selected={num} onSelect={setNum} /></div><div className="bf-fg"><label className="bf-label">Pick Pana</label><PanaGrid panas={SINGLE_PANAS} selected={num2} onSelect={setNum2} /></div><AmtInput/><WinInfo/><PlaceBtn/></>}
 
         {/* ── 20. DIGIT JODI ── */}
-        {id === 'digit_jodi' && <>
-          <div className="fg"><label className="fl">Open or Close?</label>
-            <div style={{display:'flex',gap:10,marginBottom:10}}>
-              {['open','close'].map(s => (
-                <div key={s} className={`chip${openClose === s ? ' active' : ''}`}
-                  style={{flex:1,textAlign:'center',padding:'10px 0',fontSize:13}}
-                  onClick={() => setOpenClose(s)}>{s.toUpperCase()}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="fg"><label className="fl">Pick a Digit</label>
-            <div className="num-grid">
-              {DIGITS.map(d => (
-                <div key={d} className={`nchip${activeN === d ? ' active' : ''}`} onClick={() => setActiveN(d)}>{d}</div>
-              ))}
-            </div>
-          </div>
-          {activeN !== null && (
-            <div className="infobox">Will add <strong>{digitJodis.length} jodis</strong>: {digitJodis.join(', ')}</div>
-          )}
-          <AmtInput label="Amount per jodi"/>
-          <AddBtn label="+ Add Digit Jodis"/>
-          <BulkTable/>
-          {bets.length > 0 && <PlaceAllBtn/>}
-        </>}
+        {id === 'digit_jodi' && <><div className="bf-fg"><label className="bf-label">Open or Close?</label><div className="bf-session-row">{['open','close'].map(s => (<div key={s} className={`bf-session-btn${openClose === s ? ' active' : ''}`} onClick={() => setOpenClose(s)}>{s.toUpperCase()}</div>))}</div></div><div className="bf-fg"><label className="bf-label">Pick a Digit</label><NumGrid selected={activeN !== null ? String(activeN) : ''} onSelect={v => setActiveN(Number(v))} /></div>{activeN !== null && <div className="bf-desc-box">Will add <strong>{digitJodis.length} jodis</strong>: {digitJodis.join(', ')}</div>}<AmtInput label="Amount per jodi"/><AddBtn label="+ Add Digit Jodis"/><BulkTable/>{bets.length > 0 && <PlaceAllBtn/>}</>}
 
         {/* ── 21/22. SP/DP COMMON ── */}
-        {(id === 'sp_common' || id === 'dp_common') && <>
-          <div className="fg"><label className="fl">Pick {id === 'sp_common' ? 'Single' : 'Double'} Pana</label>
-            <div className="pana-grid">
-              {(id === 'sp_common' ? SINGLE_PANAS : DOUBLE_PANAS).map(p => (
-                <div key={p} className={`pchip${num === p ? ' active' : ''}`} onClick={() => setNum(p)}>{p}</div>
-              ))}
-            </div>
-          </div>
-          <AmtInput/>
-          <AddBtn/>
-          <BulkTable/>
-          {bets.length > 0 && <PlaceAllBtn/>}
-        </>}
+        {(id === 'sp_common' || id === 'dp_common') && <><div className="bf-fg"><label className="bf-label">Pick {id === 'sp_common' ? 'Single' : 'Double'} Pana</label><PanaGrid panas={id === 'sp_common' ? SINGLE_PANAS : DOUBLE_PANAS} selected={num} onSelect={setNum} /></div><AmtInput/><AddBtn/><BulkTable/>{bets.length > 0 && <PlaceAllBtn/>}</>}
       </div>
+
+      <style>{`
+        .bf-wrap { background: #f0f4ff; min-height: 100vh; padding-bottom: 80px; }
+
+        .bf-banner {
+          background: linear-gradient(135deg, #1565C0, #1E88E5);
+          padding: 14px 16px;
+          display: flex; align-items: center; gap: 12px;
+          border-bottom: 3px solid #0D47A1;
+        }
+        .bf-banner-icon { width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+        .bf-banner-name { font-size: 18px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
+        .bf-banner-sub { font-size: 12px; color: rgba(255,255,255,0.85); margin-top: 2px; }
+
+        .bf-card { background: #fff; margin: 12px; border-radius: 16px; padding: 16px; box-shadow: 0 2px 12px rgba(30,136,229,0.1); border: 1.5px solid #E3EAFF; }
+
+        .bf-title { font-size: 16px; font-weight: 800; color: #1565C0; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 1px; }
+
+        .bf-desc-box { background: #E3F2FD; border: 1px solid #90CAF9; border-radius: 10px; padding: 9px 12px; margin-bottom: 14px; font-size: 13px; color: #1565C0; line-height: 1.5; }
+        .bf-desc-box strong { color: #0D47A1; }
+
+        .bf-fg { margin-bottom: 14px; }
+        .bf-label { font-size: 11px; color: #1565C0; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; display: block; margin-bottom: 7px; }
+
+        .bf-input { width: 100%; background: #F8FBFF; border: 2px solid #BBDEFB; border-radius: 10px; padding: 11px 14px; color: #1A237E; font-size: 16px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        .bf-input:focus { border-color: #1E88E5; box-shadow: 0 0 0 3px rgba(30,136,229,0.12); }
+        .bf-input::placeholder { color: rgba(21,101,192,0.35); }
+
+        .bf-chips-row { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 8px; }
+        .bf-chip { background: #E3F2FD; border: 1.5px solid #90CAF9; border-radius: 8px; padding: 5px 12px; font-size: 13px; cursor: pointer; font-weight: 700; color: #1565C0; transition: all 0.15s; }
+        .bf-chip:hover { background: #BBDEFB; border-color: #1E88E5; }
+        .bf-chip.active { background: linear-gradient(135deg, #1565C0, #1E88E5); color: #fff; border-color: #1565C0; }
+
+        .bf-num-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; margin-bottom: 4px; }
+        .bf-nchip { background: #E3F2FD; border: 2px solid #BBDEFB; border-radius: 8px; padding: 12px 6px; text-align: center; font-size: 16px; font-weight: 800; cursor: pointer; color: #1565C0; transition: all 0.15s; }
+        .bf-nchip:hover { border-color: #1E88E5; transform: scale(1.08); }
+        .bf-nchip.active { background: linear-gradient(135deg, #1565C0, #42A5F5); color: #fff; border-color: #1565C0; }
+
+        .bf-jodi-scroll { max-height: 200px; overflow-y: auto; border: 2px solid #BBDEFB; border-radius: 10px; background: #F8FBFF; margin-bottom: 4px; }
+        .bf-jodi-scroll::-webkit-scrollbar { width: 3px; }
+        .bf-jodi-scroll::-webkit-scrollbar-thumb { background: #90CAF9; border-radius: 3px; }
+        .bf-jodi-grid { display: grid; grid-template-columns: repeat(5,1fr); }
+        .bf-jchip { padding: 10px 4px; text-align: center; font-size: 12px; font-weight: 700; cursor: pointer; color: #1565C0; border-right: 1px solid #E3F2FD; border-bottom: 1px solid #E3F2FD; transition: all 0.12s; }
+        .bf-jchip:hover { background: #BBDEFB; }
+        .bf-jchip.active { background: linear-gradient(135deg, #1565C0, #42A5F5); color: #fff; }
+
+        .bf-pana-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; max-height: 200px; overflow-y: auto; margin-bottom: 4px; }
+        .bf-pana-grid::-webkit-scrollbar { width: 3px; }
+        .bf-pana-grid::-webkit-scrollbar-thumb { background: #90CAF9; border-radius: 3px; }
+        .bf-pchip { background: #E3F2FD; border: 1.5px solid #BBDEFB; border-radius: 8px; padding: 8px 4px; text-align: center; font-size: 12px; font-weight: 700; cursor: pointer; color: #1565C0; transition: all 0.12s; }
+        .bf-pchip:hover { border-color: #1E88E5; transform: scale(1.05); }
+        .bf-pchip.active { background: linear-gradient(135deg, #1565C0, #42A5F5); color: #fff; border-color: #1565C0; }
+
+        .bf-session-row { display: flex; gap: 10px; }
+        .bf-session-btn { flex: 1; text-align: center; padding: 11px 0; font-size: 13px; font-weight: 800; cursor: pointer; border-radius: 10px; background: #E3F2FD; color: #1565C0; border: 2px solid #BBDEFB; transition: all 0.15s; letter-spacing: 1px; }
+        .bf-session-btn:hover { border-color: #1E88E5; }
+        .bf-session-btn.active { background: linear-gradient(135deg, #1565C0, #1E88E5); color: #fff; border-color: #1565C0; }
+
+        .bf-add-btn { width: 100%; background: #E3F2FD; color: #1565C0; border: 2px dashed #90CAF9; border-radius: 10px; padding: 11px; font-weight: 700; font-size: 14px; cursor: pointer; margin-bottom: 14px; transition: all 0.15s; }
+        .bf-add-btn:hover { background: #BBDEFB; border-color: #1E88E5; }
+
+        .bf-bulk-table-wrap { overflow-x: auto; margin-bottom: 8px; border: 1.5px solid #E3EAFF; border-radius: 10px; }
+        .bf-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .bf-table th { background: #E3F2FD; color: #1565C0; padding: 9px 10px; text-align: left; font-weight: 700; letter-spacing: 1px; font-size: 11px; }
+        .bf-table td { padding: 9px 10px; border-bottom: 1px solid #F0F4FF; color: #333; }
+        .bf-table tr:last-child td { border-bottom: none; }
+        .bf-del { background: #FFEBEE; color: #D32F2F; border: 1px solid #FFCDD2; border-radius: 5px; padding: 3px 8px; font-size: 11px; cursor: pointer; font-weight: 700; transition: all 0.15s; }
+        .bf-del:hover { background: #D32F2F; color: #fff; }
+
+        .bf-total-row { display: flex; justify-content: space-between; align-items: center; background: #E3F2FD; border: 1px solid #90CAF9; border-radius: 10px; padding: 10px 14px; margin-bottom: 4px; }
+        .bf-total-row span { font-size: 13px; color: #1565C0; font-weight: 600; }
+        .bf-total-row strong { font-size: 16px; color: #0D47A1; font-weight: 800; }
+
+        .bf-place-btn { width: 100%; background: linear-gradient(135deg, #1565C0, #1E88E5, #42A5F5); color: #fff; border: none; border-radius: 12px; padding: 15px; font-size: 16px; font-weight: 800; cursor: pointer; letter-spacing: 2px; text-transform: uppercase; box-shadow: 0 4px 16px rgba(30,136,229,0.35); display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.15s, box-shadow 0.2s; margin-top: 4px; }
+        .bf-place-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(30,136,229,0.5); }
+        .bf-place-btn:active:not(:disabled) { transform: scale(0.98); }
+        .bf-place-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+      `}</style>
     </div>
   );
 }
